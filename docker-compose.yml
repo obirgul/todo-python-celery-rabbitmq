@@ -1,0 +1,76 @@
+version: '3'
+services:
+  broker-rabbitmq:
+    image: "rabbitmq:3.9.13-management"
+    ports:
+      - "15673:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit_user
+      - RABBITMQ_DEFAULT_PASS=rabbit_password
+
+#  db-postgres:
+#    image: "postgres:14.1-alpine"
+#    restart: always
+#    environment:
+#      - POSTGRES_USER=db_user
+#      - POSTGRES_PASSWORD=db_password
+#    ports:
+#      - '5432:5432'
+#    volumes:
+#      - db:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "1234:1234"
+    environment:
+      - APP_CONFIG=Config
+    depends_on:
+      - broker-rabbitmq
+
+  api-worker01:
+    build: .
+    command: celery -A src.tasks.celery_worker.celery worker --loglevel=info -n worker01 -Ofair --concurrency=10
+    environment:
+      - APP_CONFIG=Config
+    depends_on:
+      - broker-rabbitmq
+
+  api-worker02:
+    build: .
+    command: celery -A src.tasks.celery_worker.celery worker --loglevel=info -n worker02 -Ofair --concurrency=10
+    environment:
+      - APP_CONFIG=Config
+    depends_on:
+      - broker-rabbitmq
+
+#  api-beat:
+#    build: .
+#    command: celery -A src.tasks.celery_worker.celery beat --loglevel=info
+#    environment:
+#      - APP_CONFIG=Config
+#    depends_on:
+#      - broker-rabbitmq
+
+  celery-flower:
+    image: gregsi/latest-celery-flower-docker:latest
+    environment:
+      - AMQP_USERNAME=rabbit_user
+      - AMQP_PASSWORD=rabbit_password
+      - AMQP_ADMIN_USERNAME=rabbit_user
+      - AMQP_ADMIN_PASSWORD=rabbit_password
+      - AMQP_HOST=broker-rabbitmq
+      - AMQP_PORT=5672
+      - AMQP_ADMIN_HOST=broker-rabbitmq
+      - AMQP_ADMIN_PORT=15672
+      - FLOWER_BASIC_AUTH=admin:admin
+    ports:
+      - "5556:5555"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+    depends_on:
+      - broker-rabbitmq
