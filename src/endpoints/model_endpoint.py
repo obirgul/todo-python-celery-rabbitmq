@@ -31,4 +31,4 @@ def data_processing(req: MMRInputSchema):
     task = process_data.delay(data)
 
     logger.info("Task: %s", task)
-    return {'task_id': task.id, 'status': 'Process is ongoing...', 'input': req.json()}
+    return {'task_id': task.id, 'status': 'Process is ongoing...', 'input': req.model_dump_json()}
