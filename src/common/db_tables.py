@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.sql.functions import now
 from sqlalchemy import Column, Integer, DateTime, String  # , Date, Float, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
